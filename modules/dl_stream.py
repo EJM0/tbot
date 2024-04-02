@@ -224,24 +224,22 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             log.info("🧰 file compressed")
 
     elif choosen == 1:
-        if channelconf['streamers'][channel]['fckdmca'] == True:
-            killmusic = dmcaf(workdir, lt1)
-            log.info('🎛️ sepperating vocal stem')
-            killmusic.sepperate()
-            log.info('🎛️ remuxing new audio with video')
-            novocalvideo = killmusic.patch()
-            log.info('🎛️ done!')
-
-            vfile = VideoFileClip(os.path.join(
-                workdir, '/output/', novocalvideo))
+        if 'fckdmca' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['fckdmca']:
+                killmusic = dmcaf(workdir, lt1)
+                log.info('🎛️ sepperating vocal stem')
+                killmusic.sepperate()
+                log.info('🎛️ remuxing new audio with video')
+                finalvideo = killmusic.patch()
+                log.info('🎛️ done!')
+                workdir = workdir + '/output/'
+                vfile = VideoFileClip(os.path.join(
+                    workdir, finalvideo))
         else:
-            vfile = VideoFileClip(os.path.join(workdir, lt1))
-
+            finalvideo = VideoFileClip(os.path.join(workdir, lt1))
         duration = vfile.duration
         vfile.close()
-
         if duration >= 43200:
-            vlist = ytupload.yt_pre_splitter(workdir, novocalvideo)
+            vlist = ytupload.yt_pre_splitter(workdir, finalvideo)
             log.info("⬆️ uploading to youtube")
             print(vlist)
             try:
@@ -260,7 +258,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                 log.info("⬆️ youtube upload failed")
 
         else:
-            ytupload.upload(workdir, novocalvideo, udate, channel)
+            ytupload.upload(workdir, finalvideo, udate, channel)
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
             shutil.rmtree(workdir)

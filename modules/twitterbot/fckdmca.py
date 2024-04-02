@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import subprocess
 from audio_separator.separator import Separator
@@ -31,11 +32,18 @@ class dmcaf:
 
         separator.load_model(model_filename='UVR_MDXNET_KARA.onnx')
 
-        output_files = separator.separate(vocal_one)
+        time.sleep(10)
 
-        print(output_files)
-        self.vocalaudio = os.path.join(
-            self.workdir, 'output/', output_files[0])
+        try:
+            output_files = separator.separate(os.path.join(
+                self.workdir, 'output/', vocal_one[0]))
+            self.vocalaudio = os.path.join(
+                self.workdir, 'output/', output_files[0])
+        except Exception as e:
+            # Handle the case where basename extraction fails
+            logging.error(f"Error processing audio file: {e}")
+            self.vocalaudio = vocal_one
+
 
     def patch(self):
         # Define input and output paths
@@ -51,11 +59,12 @@ class dmcaf:
         """ for line in process.stdout:
             print("FFmpeg output:", line, end="") """
 
-        for line in process.stderr:
-            print("FFmpeg error:", line, end="")
+        """ for line in process.stderr:
+            print("FFmpeg error:", line, end="") """
 
         # Wait for the process to finish
         process.wait()
+        time.sleep(2)
         # Remove the not needed audio file
         # os.remove(self.vocalaudio)
 
