@@ -13,7 +13,7 @@ class database:
             host=os.environ.get("db-host"),
             user=os.environ.get("db-user"),
             password=os.environ.get("db-password"),
-            database=os.environ.get("db-database"),
+            database=os.environ.get("db-database")
             )
             self.cursor = self.connection.cursor()
         except Exception as e:
@@ -48,9 +48,9 @@ class database:
         self.cursor.execute(update_query, (new_value, id))
         
     def dump_array_via_id(self, id, column_name, array):
-        update_query = f"UPDATE streams SET {column_name} = %s WHERE id = %s"
-        array_json = json.dumps(array, indent=4, sort_keys=True, default=str)
-        self.cursor.execute(update_query, (array_json, id))
+            update_query = f"UPDATE streams SET {column_name} = %s WHERE id = %s"
+            array_json = json.dumps(array, indent=4, sort_keys=True, default=str)
+            self.cursor.execute(update_query, (array_json, id))
 
     def update_by_datetime(self, datetime, column_name, new_value):
         update_query = f"UPDATE streams SET {column_name} = %s WHERE date = %s"

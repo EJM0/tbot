@@ -231,15 +231,16 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                 log.info('🎛️ remuxing new audio with video')
                 finalvideo = killmusic.patch()
                 log.info('🎛️ done!')
-                workdir = workdir + '/output/'
+                fworkdir = workdir + 'output/'
                 vfile = VideoFileClip(os.path.join(
-                    workdir, finalvideo))
+                    fworkdir, finalvideo))
         else:
+            fworkdir = workdir
             finalvideo = VideoFileClip(os.path.join(workdir, lt1))
         duration = vfile.duration
         vfile.close()
         if duration >= 43200:
-            vlist = ytupload.yt_pre_splitter(workdir, finalvideo)
+            vlist = ytupload.yt_pre_splitter(fworkdir, finalvideo)
             log.info("⬆️ uploading to youtube")
             print(vlist)
             try:
@@ -258,7 +259,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                 log.info("⬆️ youtube upload failed")
 
         else:
-            ytupload.upload(workdir, finalvideo, udate, channel)
+            ytupload.upload(fworkdir, finalvideo, udate, channel)
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
             shutil.rmtree(workdir)
