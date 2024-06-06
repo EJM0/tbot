@@ -32,17 +32,15 @@ class dmcaf:
         vocal_one = separator.separate(
             os.path.join(self.workdir, self.videofile))
 
-        separator.load_model(model_filename='UVR_MDXNET_KARA.onnx')
+        #separator.load_model(model_filename='UVR_MDXNET_KARA.onnx')
 
         time.sleep(10)
 
         try:
-            output_files = separator.separate(os.path.join(
-                self.workdir, 'output/', vocal_one[0]))
+            #output_files = separator.separate(os.path.join(self.workdir, 'output/', vocal_one[0]))
             self.vocalaudio = os.path.join(
-                self.workdir, 'output/', output_files[0])
-            os.remove(os.path.join(
-                self.workdir, 'output/', vocal_one[0]))
+                self.workdir, 'output/', vocal_one[0])
+            #os.remove(os.path.join(self.workdir, 'output/', vocal_one[0]))
             """ self.vocalaudio = os.path.join(
                 self.workdir, 'output/', vocal_one[0]) """
         except Exception as e:

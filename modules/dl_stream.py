@@ -183,9 +183,12 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
 
             log.info("🐦 starting twitter_bot")
             noti.message("start twitterbot")
-            tbs = tb.init(os.path.join(workdir, tempfilename5), channelconf['streamers'][str(
-                channel)]['tbot']['words'], channel=channel, dbid=dbid)
-            tbs.start()
+            try:
+                tbs = tb.init(os.path.join(workdir, tempfilename5), channelconf['streamers'][str(
+                    channel)]['tbot']['words'], channel=channel, dbid=dbid)
+                tbs.start()
+            except Exception as e:
+                log.error(f"⚠️⚠️⚠️ Tbot process had an ERROR: {e}")
         if 'ytupload' in channelconf['streamers'][channel]:
             if channelconf['streamers'][channel]['ytupload'] == True:
                 p = Process(target=fixm, args=(workdir, tempfilename5,
@@ -232,11 +235,12 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                 finalvideo = killmusic.patch()
                 log.info('🎛️ done!')
                 fworkdir = workdir + 'output/'
-                vfile = VideoFileClip(os.path.join(
-                    fworkdir, finalvideo))
+                
         else:
             fworkdir = workdir
-            finalvideo = VideoFileClip(os.path.join(workdir, lt1))
+            finalvideo = lt1
+        vfile = VideoFileClip(os.path.join(
+                    fworkdir, finalvideo))
         duration = vfile.duration
         vfile.close()
         if duration >= 43200:
@@ -250,8 +254,8 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                     print(vid)
                     ytupload.upload(vid[0], vid[1], str(
                         udate)+'/'+str(n), channel)
-                    ydir = os.path.join(workdir, "ytsplits")
-                    shutil.rmtree(workdir)
+                    ydir = os.path.join(fworkdir, "ytsplits")
+                    shutil.rmtree(ydir)
                 """ for vid in vlist:
                     os.remove(vid) """
             except Exception as e:
@@ -274,11 +278,11 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             log.info(
                 f"🧰 file compressed in: {datetime.fromtimestamp(time.time()-start).strftime('%H:%M:%S')}, {old_gb} -> {get_file_size_in_gb(workdir+fn+'.mp4')}")
 
-    if cs == True:
-        pass
-    else:
-        try:
-            os.remove(workdir+lt1)
-            log.info("🗑️ deleted temp files!")
-        except Exception as e:
-            log.error(f'faild to delete temp files: \n{e}')
+            if cs == True:
+                pass
+            else:
+                try:
+                    os.remove(workdir+lt1)
+                    log.info("🗑️ deleted temp files!")
+                except Exception as e:
+                    log.error(f'faild to delete temp files: \n{e}')

@@ -42,7 +42,7 @@ def upload(workdir, vid, vid_title, creator):
                   os.path.join(dir, "credentials.storage"))
     # setting up the video that is going to be uploaded
     print(f'Titel: {creator}: {vid_title}')
-    video = LocalVideo(file_path=workdir+vid)
+    video = LocalVideo(file_path=os.path.join(workdir, vid))
 
     # setting snippet
     print(f'{creator}: {vid_title}')
