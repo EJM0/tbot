@@ -33,7 +33,6 @@ channelconfraw = open(listname, "r")
 channelconf = json.load(channelconfraw)
 dir = os.environ.get("dir")
 
-
 class main:
     def __init__(self, channel):
         self.channel = channel
@@ -41,6 +40,21 @@ class main:
         self.token = None
         self.log = None
         self.now = None
+        
+    def read_tmp(self, file):
+        try:
+            with open(file, "r") as f:
+                return f.readline().strip()
+        except:
+            return None
+        
+    def write_tmp(self, tfile, content, mode):
+        try:
+            with open(tfile, mode) as f:
+                f.write(str(content))
+            return True
+        except Exception as e:
+            return False
 
     # folder routine2
     def sub(self):
@@ -61,14 +75,22 @@ class main:
         if self.channel in channelconf['streamers']:
             if 'tbot' in channelconf['streamers'][self.channel]:
                 if os.environ.get("db-host"):
-                    db = database()
-                    dbid = db.create_frame(
-                        self.channel, self.now.strftime('%Y-%m-%d %H:%M:%S'))
-                    db.cd()
-                self.log.info(
-                    f'📑 writing to db as {self.channel} id is = {dbid}')
-                tweet_text(
-                    f'🔴 {self.channel} ist live!\nhttps://www.twitch.tv/{self.channel}\nTitel: {checkstream.get_title(self.channel, self.token)}\n#{self.channel}')
+                    tmp_file_name = os.path.join(current_workdir, 'dbid.tmp')
+                    read_tmp_dbid = self.read_tmp(tmp_file_name)
+                    if  read_tmp_dbid != None:
+                        dbid = int(read_tmp_dbid)
+                        log.info(f"📄 found old dbid : {dbid}")
+                    else:
+                        db = database()
+                        dbid = db.create_frame(
+                            self.channel, self.now.strftime('%Y-%m-%d %H:%M:%S'))
+                        db.cd()
+                        print(self.write_tmp(tmp_file_name, dbid, 'w'))
+                        log.info(f"📄 written dbid")
+                        self.log.info(
+                            f'📑 writing to db as {self.channel} id is = {dbid}')
+                        tweet_text(
+                            f'🔴 {self.channel} ist live!\nhttps://www.twitch.tv/{self.channel}\nTitel: {checkstream.get_title(self.channel, self.token)}\n#{self.channel}')
                 self.log.info('📈 start plot and data collection')
                 plotp = Process(target=vs, args=(
                     self.token, 300, current_workdir, self.channel, dbid))
