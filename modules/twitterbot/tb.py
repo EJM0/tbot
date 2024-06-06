@@ -169,10 +169,10 @@ class trimming:
         duration = clip.duration
         clip.close()
 
-        self.log.info('duration:', duration)
+        self.log.info(f'duration: {duration}')
         if duration > 120:
-            timessecons = clip.duration // 120
-            rest = clip.duration % 120
+            timessecons = duration // 120
+            rest = duration % 120
             startsec = 0
             endsec = 120
             n = 0
@@ -216,7 +216,7 @@ class trimming:
                 self.uploadlist.append(str(rest)+'-part.mp4')
 
         sleep(10)
-
+        
         if len(self.uploadlist) != 0:
             #self.log.info(len(self.uploadlist))
             self.log.info(f'{self.uploadlist} videos to upload')
@@ -229,6 +229,7 @@ class trimming:
             self.log.info('uploading')
             tweet_media(self.workdir+'/output/' +
                         'stitched-video.mp4', '#'+self.channel)
+        return
 
 
 class sentimenttweet:
@@ -351,10 +352,11 @@ class init:
         if self.test == 0 or 6:
             self.log.info('upload to twitter')
             tr.twitter_upload()
+            self.log.info('upload to twitter finished')
             
-        if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
+        """ if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
             tiktok_upload(self.channel, self.date, os.path.join(
-                self.workdir, 'output/', 'stitched-video.mp4'))
+                self.workdir, 'output/', 'stitched-video.mp4')) """
         
         if self.test == 0:
             try:
@@ -363,3 +365,5 @@ class init:
                 pass
             except Exception as e:
                 self.log.error('faild to delete temp files', e)
+                
+        return

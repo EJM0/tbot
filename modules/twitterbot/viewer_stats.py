@@ -28,7 +28,7 @@ load_dotenv()
 
 class vstats():
 
-    def __init__(self, token, stime, workdir, channel, exittime=900, dbid=None, test=None):
+    def __init__(self, token, stime, workdir, channel, dbid, exittime=900, test=None):
         logbook.StreamHandler(sys.stdout).push_application()
         self.log = logbook.Logger(channel)
 

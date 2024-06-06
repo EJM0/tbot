@@ -1,11 +1,14 @@
 import os
+import time
 import logging
 import subprocess
 from audio_separator.separator import Separator
 from moviepy.editor import *
 from moviepy.config import change_settings
+from dotenv import load_dotenv
+load_dotenv()
 change_settings({"FFMPEG_BINARY": "ffmpeg"})
-
+options_codec = os.environ.get("codec")
 
 class dmcaf:
     def __init__(self, workdir, videofile):
@@ -29,34 +32,48 @@ class dmcaf:
         vocal_one = separator.separate(
             os.path.join(self.workdir, self.videofile))
 
-        separator.load_model(model_filename='UVR_MDXNET_KARA.onnx')
+        #separator.load_model(model_filename='UVR_MDXNET_KARA.onnx')
 
-        output_files = separator.separate(vocal_one)
+        time.sleep(10)
 
-        print(output_files)
-        self.vocalaudio = os.path.join(
-            self.workdir, 'output/', output_files[0])
+        try:
+            #output_files = separator.separate(os.path.join(self.workdir, 'output/', vocal_one[0]))
+            self.vocalaudio = os.path.join(
+                self.workdir, 'output/', vocal_one[0])
+            #os.remove(os.path.join(self.workdir, 'output/', vocal_one[0]))
+            """ self.vocalaudio = os.path.join(
+                self.workdir, 'output/', vocal_one[0]) """
+        except Exception as e:
+            # Handle the case where basename extraction fails
+            logging.error(f"Error processing audio file: {e}")
+            self.vocalaudio = vocal_one
+
 
     def patch(self):
         # Define input and output paths
         input_video_path = os.path.join(self.workdir, self.videofile)
-        output_video_path = os.path.join(
-            self.workdir, 'output', f'yt-vocals-{self.videofile}').replace(".mp4", ".mkv")
+        output_video_path = os.path.join(self.workdir, 'output', f'yt-vocals-{self.videofile}').replace(".mp4", ".mkv")
+        
+        # Load video clip
+        video_clip = VideoFileClip(input_video_path)
+        
+        # Load new audio clip
+        audio_clip = AudioFileClip(self.vocalaudio)
+        
+        # Replace the audio of the video clip with the new audio clip
+        video_clip_with_new_audio = video_clip.set_audio(audio_clip)
+        
+        # Write the new video file with the replaced audio
+        video_clip_with_new_audio.write_videofile(output_video_path, codec=options_codec, audio_codec="aac", temp_audiofile='temp-audio.m4a', remove_temp=True)
 
-        # Execute ffmpeg command to copy the video and replace the audio
-        process = subprocess.Popen(['ffmpeg', '-i', input_video_path, '-i', self.vocalaudio, '-c:v', 'copy', '-c:a', 'aac', '-strict',
-                                   'experimental', '-map', '0:v:0', '-map', '1:a:0', output_video_path, '-y'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-        # Print the output in real-time
-        """ for line in process.stdout:
-            print("FFmpeg output:", line, end="") """
-
-        for line in process.stderr:
-            print("FFmpeg error:", line, end="")
-
-        # Wait for the process to finish
-        process.wait()
-        # Remove the not needed audio file
-        # os.remove(self.vocalaudio)
+        # Close the clips
+        video_clip.close()
+        audio_clip.close()
+        video_clip_with_new_audio.close()
+        
+        try:
+            os.remove(self.vocalaudio)
+        except Exception as e:
+            print(e)
 
         return output_video_path.split('/')[-1]

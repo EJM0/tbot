@@ -16,7 +16,7 @@ dotenv.load_dotenv(dotenv_file)
 clientid = os.environ.get("Client-ID-Twitch")
 clientsecret = os.environ.get("Authorization-Twitch")
 
-def post(user):
+def post(user = 'token'):
     log = Logger(user)
     daysec = 2456000
     url = 'https://id.twitch.tv/oauth2/token?client_id='+clientid+'&client_secret='+clientsecret+'&grant_type=client_credentials'

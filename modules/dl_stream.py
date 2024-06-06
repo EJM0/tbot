@@ -183,9 +183,12 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
 
             log.info("🐦 starting twitter_bot")
             noti.message("start twitterbot")
-            tbs = tb.init(os.path.join(workdir, tempfilename5), channelconf['streamers'][str(
-                channel)]['tbot']['words'], channel=channel, dbid=dbid)
-            tbs.start()
+            try:
+                tbs = tb.init(os.path.join(workdir, tempfilename5), channelconf['streamers'][str(
+                    channel)]['tbot']['words'], channel=channel, dbid=dbid)
+                tbs.start()
+            except Exception as e:
+                log.error(f"⚠️⚠️⚠️ Tbot process had an ERROR: {e}")
         if 'ytupload' in channelconf['streamers'][channel]:
             if channelconf['streamers'][channel]['ytupload'] == True:
                 p = Process(target=fixm, args=(workdir, tempfilename5,
@@ -224,24 +227,24 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             log.info("🧰 file compressed")
 
     elif choosen == 1:
-        if channelconf['streamers'][channel]['fckdmca'] == True:
-            killmusic = dmcaf(workdir, lt1)
-            log.info('🎛️ sepperating vocal stem')
-            killmusic.sepperate()
-            log.info('🎛️ remuxing new audio with video')
-            novocalvideo = killmusic.patch()
-            log.info('🎛️ done!')
-
-            vfile = VideoFileClip(os.path.join(
-                workdir, '/output/', novocalvideo))
+        if 'fckdmca' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['fckdmca']:
+                killmusic = dmcaf(workdir, lt1)
+                log.info('🎛️ sepperating vocal stem')
+                killmusic.sepperate()
+                log.info('🎛️ remuxing new audio with video')
+                finalvideo = killmusic.patch()
+                log.info('🎛️ done!')
+                fworkdir = workdir + 'output/'
+                
         else:
-            vfile = VideoFileClip(os.path.join(workdir, lt1))
-
+            fworkdir = workdir
+            finalvideo = lt1
+        vfile = VideoFileClip(os.path.join(
+                    fworkdir, finalvideo))
         duration = vfile.duration
         vfile.close()
-
         if duration >= 43200:
-            vlist = ytupload.yt_pre_splitter(workdir, novocalvideo)
+            vlist = ytupload.yt_pre_splitter(fworkdir, finalvideo)
             log.info("⬆️ uploading to youtube")
             print(vlist)
             try:
@@ -251,8 +254,8 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                     print(vid)
                     ytupload.upload(vid[0], vid[1], str(
                         udate)+'/'+str(n), channel)
-                    ydir = os.path.join(workdir, "ytsplits")
-                    shutil.rmtree(workdir)
+                    ydir = os.path.join(fworkdir, "ytsplits")
+                    shutil.rmtree(ydir)
                 """ for vid in vlist:
                     os.remove(vid) """
             except Exception as e:
@@ -260,7 +263,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
                 log.info("⬆️ youtube upload failed")
 
         else:
-            ytupload.upload(workdir, novocalvideo, udate, channel)
+            ytupload.upload(fworkdir, finalvideo, udate, channel)
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
             shutil.rmtree(workdir)
@@ -275,11 +278,11 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             log.info(
                 f"🧰 file compressed in: {datetime.fromtimestamp(time.time()-start).strftime('%H:%M:%S')}, {old_gb} -> {get_file_size_in_gb(workdir+fn+'.mp4')}")
 
-    if cs == True:
-        pass
-    else:
-        try:
-            os.remove(workdir+lt1)
-            log.info("🗑️ deleted temp files!")
-        except Exception as e:
-            log.error(f'faild to delete temp files: \n{e}')
+            if cs == True:
+                pass
+            else:
+                try:
+                    os.remove(workdir+lt1)
+                    log.info("🗑️ deleted temp files!")
+                except Exception as e:
+                    log.error(f'faild to delete temp files: \n{e}')
