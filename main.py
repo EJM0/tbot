@@ -40,14 +40,14 @@ class main:
         self.token = None
         self.log = None
         self.now = None
-        
+
     def read_tmp(self, file):
         try:
             with open(file, "r") as f:
                 return f.readline().strip()
         except:
             return None
-        
+
     def write_tmp(self, tfile, content, mode):
         try:
             with open(tfile, mode) as f:
@@ -85,7 +85,7 @@ class main:
                         dbid = db.create_frame(
                             self.channel, self.now.strftime('%Y-%m-%d %H:%M:%S'))
                         db.cd()
-                        print(self.write_tmp(tmp_file_name, dbid, 'w'))
+                        self.write_tmp(tmp_file_name, dbid, 'w')
                         log.info(f"📄 written dbid")
                         self.log.info(
                             f'📑 writing to db as {self.channel} id is = {dbid}')
@@ -158,8 +158,8 @@ def start_threads():
         log.info('starting worker of: '+streamer)
         st = main(streamer)
         process_list.append(Process(target=st.starup))
-        
-    #starting them from list  
+
+    #starting them from list
     if process_list != 0:
         for process in process_list:
             process.start()
