@@ -1,3 +1,3 @@
 from ..modules.twitterbot import tb
-tbs = tb.init("/media/raid/twitch/papaplatte/papaplatte-stream-2023-08-07", "temp_1.5_14.16.mp4", ['geil', 'perfekt'], 1, 0.5, channel='papaplatte', test=0)
+tbs = tb.init("/media/raid", "appleevent.mp4", ['amazing', 'easy', 'easily', 'nice'], 1, 0.5, channel='appleevent', test=4)
 tbs.start()

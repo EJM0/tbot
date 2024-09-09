@@ -354,9 +354,9 @@ class init:
             tr.twitter_upload()
             self.log.info('upload to twitter finished')
             
-        """ if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
+        if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
             tiktok_upload(self.channel, self.date, os.path.join(
-                self.workdir, 'output/', 'stitched-video.mp4')) """
+                self.workdir, 'output/', 'stitched-video.mp4'))
         
         if self.test == 0:
             try:
