@@ -1,6 +1,10 @@
-FROM python:3.12-slim
+FROM python:3.11.4-slim
 
-RUN apt-get update && apt-get install -y libpq-dev build-essential
+RUN pip install --upgrade pip==23.3.2
+
+RUN apt-get update && apt-get install -y libpq-dev build-essential ffmpeg
+
+RUN apt-get install streamlink -y
 
 WORKDIR /app
 
