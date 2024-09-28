@@ -215,7 +215,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
     if choosen == 0:
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
-            shutil.rmtree(workdir)
+            shutil.rmtree(workdir, ignore_errors=True)
         else:
             log.info("🧰 file fixed")
             """ if cs == True:
