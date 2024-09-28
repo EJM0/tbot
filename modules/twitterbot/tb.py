@@ -1,5 +1,4 @@
 from .db import *
-from ..tiktok.upload import tiktok_upload
 from ..twitter import *
 from .percentofmood import moodpercent
 from .countwords import countsaidwords
@@ -18,6 +17,7 @@ import json
 import os
 import logbook
 import sys
+from ..tiktok.upload import TiktokUploader
 from dotenv import load_dotenv
 load_dotenv()
 change_settings({"FFMPEG_BINARY": "ffmpeg"})
@@ -28,6 +28,11 @@ channelconfraw = open(listname, "r")
 channelconf = json.load(channelconfraw)
 
 options_codec = os.environ.get("codec")
+
+# Tiktok config
+tiktok_callback_uri = os.environ.get("tiktok-callback-uri")
+tiktok_client_key = os.environ.get("tiktok-client-key")
+tiktok_client_secret = os.environ.get("tiktok-client-secret")
 
 
 class wordprep:
@@ -293,6 +298,13 @@ class init:
     def start(self):
         """cv = combinevids(self.workdir)
         """
+        #init Tikitok uploader
+        uploader = TiktokUploader(
+            client_key=tiktok_client_key,
+            client_secret=tiktok_client_secret,
+            redirect_uri=tiktok_callback_uri,
+            )
+        
         # start word recognition or load tempfile
         if self.test == 0 or 3 or 4 or 5:
             wp = wordprep(self.workdir, self.vfile)
@@ -355,8 +367,7 @@ class init:
             self.log.info('upload to twitter finished')
             
         if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
-            tiktok_upload(self.channel, self.date, os.path.join(
-                self.workdir, 'output/', 'stitched-video.mp4'))
+            uploader.upload_to_tiktok(video_path=os.path.join(self.workdir, 'output/', 'stitched-video.mp4'), title=self.date)
         
         if self.test == 0:
             try:
