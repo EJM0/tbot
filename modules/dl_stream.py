@@ -55,7 +55,7 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
     try:
         print(channel)
         subprocess.call(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
-                        '-l', 'none', '--hls-duration', '24:00:00'], stdout=subprocess.DEVNULL)
+                        '-l', 'none', '--hls-duration', '24:00:00', '--twitch-disable-ads'], stdout=subprocess.DEVNULL)
     except Exception as e:
         log.info(e)
 

@@ -154,7 +154,8 @@ class trimming:
             final_clip = concatenate_videoclips(self.editlist)
             # final_clip.write_videofile(workdir+'output/'+'stitched-video-nonf.mp4')
             final_clip.write_videofile(os.path.join(self.workdir, 'output/', filename), fps=30, verbose=False, remove_temp=True,
-                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None)
+                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+                                       ffmpeg_params=["-vf", "format=yuv420p"])
 
             os.chdir(odir)
 
@@ -306,7 +307,7 @@ class init:
             )
         
         # start word recognition or load tempfile
-        if self.test == 0 or 3 or 4 or 5:
+        if self.test == 0 or 3 or 4 or 5 or 6:
             wp = wordprep(self.workdir, self.vfile)
             if os.path.isfile(os.path.join(self.workdir, 'output.txt')) == True:
                 self.log.info('skipping analyse output.txt exists!')
@@ -367,7 +368,7 @@ class init:
             self.log.info('upload to twitter finished')
             
         if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
-            uploader.upload_to_tiktok(video_path=os.path.join(self.workdir, 'output/', 'stitched-video.mp4'), title=self.date)
+            uploader.upload_to_tiktok(video_path=os.path.join(self.workdir, 'output/', 'stitched-video.mp4'))
         
         if self.test == 0:
             try:

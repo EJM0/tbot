@@ -28,18 +28,35 @@ class TiktokUploader:
 
     def upload_to_tiktok(self, video_path):
         try:
-            file_thread = threading.Thread(target=self.check_token_file)
-            file_thread.start()
+            from multiprocessing import Process, Event, Queue
 
-            if not self.token_event.wait(timeout=1):
+            def check_token_file_process(self, queue):
+                self.check_token_file()
+                queue.put(self.access_token)
+
+            def start_http_server_process(self, queue):
                 print("Token file not found or expired, starting HTTP server for reauthentication.")
-                server_thread = threading.Thread(target=self.start_http_server)
-                server_thread.start()
-                server_thread.join()
+                self.start_http_server()
+                queue.put(self.access_token)
 
-            time.sleep(1)
-            access_token = self.access_token
-            self.print_token_expiration()
+            token_queue = Queue()
+            file_process = Process(target=self.check_token_file_process, args=(token_queue,))
+            server_process = Process(target=self.start_http_server_process, args=(token_queue,))
+
+            file_process.start()
+            server_process.start()
+            
+            # Wait for either process to finish and get the token
+            access_token = token_queue.get()
+            self.access_token = access_token
+
+            # Terminate both processes
+            file_process.terminate()
+            server_process.terminate()
+
+            # Wait for processes to finish
+            file_process.join()
+            server_process.join()
 
             video_size = os.path.getsize(video_path)
             upload_url, publish_id = self.get_upload_url(access_token, video_size)
@@ -128,6 +145,7 @@ class TiktokUploader:
             raise Exception(f"Error getting access token: HTTP {response.status_code}")
 
         response_data = response.json()
+        print(response_data)
         access_token = response_data['access_token']
         expires_in = response_data['expires_in']
         expiration_time = time.time() + expires_in
