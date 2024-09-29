@@ -15,7 +15,7 @@ sys.path.append(path)
 from notification import notification  # Assuming this is your custom notification module
 
 class TiktokUploader:
-    def __init__(self, client_key, client_secret, redirect_uri, token_file='token.json'):
+    def __init__(self, client_key, client_secret, redirect_uri, token_file=os.path.join(os.path.dirname(__file__), 'token.json')):
         self.csrf_state = ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
         self.client_key = client_key
         self.client_secret = client_secret
@@ -268,3 +268,5 @@ class TiktokUploader:
                 print("Access token will expire at:", time.ctime(expiration_time))
         else:
             print("Token file not found.")
+
+
