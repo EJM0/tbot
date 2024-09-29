@@ -189,11 +189,10 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
                 tbs.start()
             except Exception as e:
                 log.error(f"⚠️⚠️⚠️ Tbot process had an ERROR: {e}")
-        if 'ytupload' in channelconf['streamers'][channel]:
-            if channelconf['streamers'][channel]['ytupload'] == True:
-                p = Process(target=fixm, args=(workdir, tempfilename5,
-                            tempfilename2, filename, log, 1, channel, ndate, udate,))
-                p.start()
+        if 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
+            p = Process(target=fixm, args=(workdir, tempfilename5,
+                        tempfilename2, filename, log, 1, channel, ndate, udate,))
+            p.start()
         else:
             p = Process(target=fixm, args=(workdir, tempfilename,
                         tempfilename2, filename, log, 0, channel, ndate, udate,))
