@@ -40,8 +40,8 @@ class TiktokUploader:
                 queue.put(self.access_token)
 
             token_queue = Queue()
-            file_process = Process(target=self.check_token_file_process, args=(token_queue,))
-            server_process = Process(target=self.start_http_server_process, args=(token_queue,))
+            file_process = Process(target=check_token_file_process, args=(self, token_queue,))
+            server_process = Process(target=start_http_server_process, args=(self, token_queue,))
 
             file_process.start()
             server_process.start()
