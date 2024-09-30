@@ -54,8 +54,20 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
 
     try:
         print(channel)
-        subprocess.call(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
+        process = subprocess.Popen(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
                         '-l', 'none', '--hls-duration', '24:00:00', '--twitch-disable-ads'], stdout=subprocess.DEVNULL)
+        try:
+            process.wait()
+        except KeyboardInterrupt:
+            log.info("🔴 Graceful shutdown initiated")
+            process.terminate()
+            process.wait()
+            log.info("🔴 Streamlink process terminated gracefully")
+        except SystemExit:
+            log.info("🔴 SystemExit received, forcefully killing the process")
+            process.terminate()
+            process.wait()
+            log.info("🔴 Streamlink process killed forcefully due to SystemExit")
     except Exception as e:
         log.info(e)
 
