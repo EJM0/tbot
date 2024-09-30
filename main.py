@@ -16,6 +16,7 @@ import time
 import sys
 import subprocess
 import os
+from datetime import date
 from datetime import datetime
 from xml.etree.ElementInclude import include
 from dotenv import load_dotenv
@@ -98,8 +99,9 @@ class main:
 
         self.log.info("⬇️ starting download")
         filename = self.now.strftime("%H.%M")
+        udate = date.today()
         dl_stream.dlstream(self.channel, filename, current_workdir,
-                           self.token, today, dbid)
+                           self.token, today, dbid, udate)
 
     def starup(self):
         self.log = logbook.Logger(self.channel)

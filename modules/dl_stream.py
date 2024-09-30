@@ -70,21 +70,19 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
             return 'reopen'
 
 
-def dlstream(channel, filename, workdir, token, ndate, dbid=None):
+def dlstream(channel, filename, workdir, token, ndate, dbid=None, udate=date.today()):
     log = Logger(channel)
     # os.chdir(folder)
     url = 'https://www.twitch.tv/' + channel
 
     # set file
     now = datetime.now()
-    filename = now.strftime("%H.%M")
+    #filename = now.strftime("%H.%M")
     tempfilename = "temp_1_" + filename + ".mp4"
-    tempfilename5 = 'temp_1.5_' + filename + '.mp4'
-    tempfilename2 = "temp_2_" + filename + ".mp4"
 
     streamcount = 0
     streamfiles = []
-    udate = date.today()
+
     while True:
         check = dek(workdir, filename+'_'+str(streamcount) +
                     '_stream.mp4', channel, log, token)
@@ -98,6 +96,16 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
         streamfilenames = streamfiles[0].split('/')[-1]
         print(f'renaming: {streamfilenames} ==> {tempfilename}')
         os.rename(streamfiles[0], workdir+tempfilename)
+    log.info("🔴 Recording stream is done")
+    
+    mvp = Process(target=managing_video, args=(channel, filename, workdir, log, ndate, streamfiles, dbid, udate,))
+    mvp.start()
+    
+def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=None, udate=date.today()):
+    tempfilename = "temp_1_" + filename + ".mp4"
+    tempfilename5 = 'temp_1.5_' + filename + '.mp4'
+    tempfilename2 = "temp_2_" + filename + ".mp4"
+      
     if len(streamfiles) > 1:
         log.info('🪡 stitching streamfiles togehter')
         videos = []
@@ -166,7 +174,6 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
             time.sleep(2)
             os.remove(workdir+stream)
 
-    log.info("🔴 Recording stream is done")
     noti.message("download done, start fixing of: "+channel)
 
     log.info("🧰 managing")
