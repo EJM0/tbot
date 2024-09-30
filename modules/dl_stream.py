@@ -107,10 +107,16 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
     tempfilename2 = "temp_2_" + filename + ".mp4"
       
     if len(streamfiles) > 1:
-        log.info('🪡 stitching streamfiles togehter')
+        log.info('🪡 stitching streamfiles together')
         videos = []
         for stream in streamfiles:
-            videos.append(VideoFileClip(stream))
+            # Repair the mp4 file before appending to the video list
+            repaired_stream = workdir + "repaired_" + os.path.basename(stream)
+            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-err_detect', 'ignore_err',
+                    '-i', stream, '-c', 'copy', repaired_stream])
+            videos.append(VideoFileClip(repaired_stream))
+            # Force remove the original stream file
+            os.remove(stream)
 
         odir = os.getcwd()
         os.chdir(workdir)
@@ -120,6 +126,10 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
                               audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None)
 
         os.chdir(odir)
+
+        # Clean up repaired files
+        for repaired_stream in videos:
+            os.remove(repaired_stream.filename)
 
         for vin in videos:
             vin.close()
