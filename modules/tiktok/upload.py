@@ -35,7 +35,6 @@ class TiktokUploader:
                 queue.put(self.access_token)
 
             def start_http_server_process(self, queue):
-                print("Token file not found or expired, starting HTTP server for reauthentication.")
                 self.start_http_server()
                 queue.put(self.access_token)
 
@@ -50,9 +49,9 @@ class TiktokUploader:
             access_token = token_queue.get()
             self.access_token = access_token
 
-            # Terminate both processes
-            file_process.terminate()
-            server_process.terminate()
+            # Forcefully terminate both processes
+            file_process.kill()
+            server_process.kill()
 
             # Wait for processes to finish
             file_process.join()

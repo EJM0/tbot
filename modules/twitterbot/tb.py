@@ -193,7 +193,8 @@ class trimming:
                 clip = VideoFileClip(os.path.join(
                     self.workdir, 'output/', 'stitched-video.mp4')).subclip(start, end)
                 clip.write_videofile(os.path.join(self.workdir, 'output/'+str(n)+'-part.mp4'), fps=30, verbose=False, remove_temp=True,
-                                     audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None)
+                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+                                       ffmpeg_params=["-vf", "format=yuv420p"])
                 clip.close()
 
                 os.chdir(odir)
@@ -213,8 +214,9 @@ class trimming:
                 os.chdir(os.path.join(self.workdir, 'output/'))
 
                 clip = clip.subclip(start, end)
-                clip.write_videofile(os.path.join(self.workdir, 'output/'+str(rest)+'-part.mp4'), fps=30, verbose=False,
-                                     remove_temp=True, audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None)
+                clip.write_videofile(os.path.join(self.workdir, 'output/'+str(rest)+'-part.mp4'), fps=30, verbose=False, remove_temp=True,
+                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+                                       ffmpeg_params=["-vf", "format=yuv420p"])
                 clip.close()
 
                 os.chdir(odir)

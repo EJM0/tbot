@@ -218,10 +218,18 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
                 tbs.start()
             except Exception as e:
                 log.error(f"⚠️⚠️⚠️ Tbot process had an ERROR: {e}")
-        if 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
-            p = Process(target=fixm, args=(workdir, tempfilename5,
-                        tempfilename2, filename, log, 1, channel, ndate, udate,))
-            p.start()
+            if 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
+                p = Process(target=fixm, args=(workdir, tempfilename5,
+                            tempfilename2, filename, log, 1, channel, ndate, udate,))
+                p.start()
+            else:
+                p = Process(target=fixm, args=(workdir, tempfilename5,
+                            tempfilename2, filename, log, 0, channel, ndate, udate,))
+                p.start()
+        elif 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
+                p = Process(target=fixm, args=(workdir, tempfilename,
+                            tempfilename2, filename, log, 1, channel, ndate, udate,))
+                p.start()
         else:
             p = Process(target=fixm, args=(workdir, tempfilename,
                         tempfilename2, filename, log, 0, channel, ndate, udate,))
@@ -239,19 +247,20 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
     lt1 = tempfilename
     lt2 = tempfilename2
     fn = filename
-
+    compress_command = ['ffmpeg', '-loglevel', 'quiet', "-vf", "format=yuv420p", '-i', os.path.join(workdir, lt1), '-c:v',
+                            options_codec, '-preset', 'medium', '-c:a', 'copy', os.path.join(workdir, fn + ".mp4")]
+    print(compress_command)
+    
     if choosen == 0:
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
             shutil.rmtree(workdir, ignore_errors=True)
         else:
-            log.info("🧰 file fixed")
             """ if cs == True:
                 job(channel, ndate, lt1, fn)
              else:
             """
-            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-i', workdir + lt1, '-c:v',
-                            'hevc_nvenc', '-preset', 'medium', '-c:a', 'copy', workdir + fn + ".mp4"])
+            subprocess.call(compress_command)
             log.info("🧰 file compressed")
 
     elif choosen == 1:
@@ -301,8 +310,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             else: """
             old_gb = get_file_size_in_gb(workdir + lt1)
             start = time.time()
-            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-i', workdir + lt1, '-c:v',
-                            'hevc_nvenc', '-preset', 'medium', '-c:a', 'copy', workdir + fn + ".mp4"])
+            subprocess.call(compress_command)
             log.info(
                 f"🧰 file compressed in: {datetime.fromtimestamp(time.time()-start).strftime('%H:%M:%S')}, {old_gb} -> {get_file_size_in_gb(workdir+fn+'.mp4')}")
 
