@@ -247,8 +247,8 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
     lt1 = tempfilename
     lt2 = tempfilename2
     fn = filename
-    compress_command = ['ffmpeg', '-loglevel', 'quiet', "-vf", "format=yuv420p", '-i', os.path.join(workdir, lt1), '-c:v',
-                            options_codec, '-preset', 'medium', '-c:a', 'copy', os.path.join(workdir, fn + ".mp4")]
+    compress_command = ['ffmpeg', '-loglevel', 'quiet', '-i', os.path.join(workdir, lt1), '-vf', 'format=yuv420p', '-c:v',
+                        options_codec, '-preset', 'medium', '-c:a', 'copy', os.path.join(workdir, fn + ".mp4")]
     print(compress_command)
     
     if choosen == 0:
