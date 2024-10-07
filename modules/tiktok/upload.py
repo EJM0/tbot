@@ -9,6 +9,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import threading
 import math
 import sys
+from multiprocessing import Process, Queue
+
 
 path = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(path)
@@ -28,8 +30,6 @@ class TiktokUploader:
 
     def upload_to_tiktok(self, video_path):
         try:
-            from multiprocessing import Process, Event, Queue
-
             def check_token_file_process(self, queue):
                 self.check_token_file()
                 queue.put(self.access_token)
@@ -109,7 +109,7 @@ class TiktokUploader:
                     self.wfile.write(b'Authorization code not found.')
 
         self.get_auth_code()
-        server = HTTPServer(('0.0.0.0', 6000), RequestHandler)
+        server = HTTPServer(('0.0.0.0', 6660), RequestHandler)
         server.auth_code = None
         server.access_token = None
         server.token_event = self.token_event
@@ -142,9 +142,11 @@ class TiktokUploader:
 
         if response.status_code != 200:
             raise Exception(f"Error getting access token: HTTP {response.status_code}")
-
         response_data = response.json()
         print(response_data)
+        if 'access_token' not in response_data:
+            raise Exception(f"Error getting access token: {response_data}")
+        
         access_token = response_data['access_token']
         expires_in = response_data['expires_in']
         expiration_time = time.time() + expires_in
@@ -285,5 +287,4 @@ class TiktokUploader:
                 print("Access token will expire at:", time.ctime(expiration_time))
         else:
             print("Token file not found.")
-
 
