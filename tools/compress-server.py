@@ -47,7 +47,7 @@ import websockets
 import subprocess
 import multiprocessing
 
-workdir = '/Volumes/twitchbot/twitch/' #smb share of the other server to get access of the videos
+workdir = '/home/tbot/twitchbot/modules/tiktok/chrome-linux64/chrome' #smb share of the other server to get access of the videos
 
 def start_subprocess(r):
     print(workdir+r[1]+'/'+r[1]+'-stream-'+r[2]+'/'+r[3])

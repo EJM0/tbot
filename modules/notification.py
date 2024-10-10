@@ -11,10 +11,10 @@ class notification:
         self.user = ''
         self.url = os.environ.get("message-url")
 
-    def message(self, message):
+    def message(self, message, linkUrl=''):
         log = Logger(self.user)
         json = {"message" : message,
-                "linkUrl" : ''
+                "linkUrl" : linkUrl
         }
         try:
             requests.post(self.url, json=json, headers={ "Content-Type" : "application/json" })

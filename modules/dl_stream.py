@@ -54,8 +54,20 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
 
     try:
         print(channel)
-        subprocess.call(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
-                        '-l', 'none', '--hls-duration', '24:00:00'], stdout=subprocess.DEVNULL)
+        process = subprocess.Popen(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
+                        '-l', 'none', '--hls-duration', '24:00:00', '--twitch-disable-ads'], stdout=subprocess.DEVNULL)
+        try:
+            process.wait()
+        except KeyboardInterrupt:
+            log.info("🔴 Graceful shutdown initiated")
+            process.terminate()
+            process.wait()
+            log.info("🔴 Streamlink process terminated gracefully")
+        except SystemExit:
+            log.info("🔴 SystemExit received, forcefully killing the process")
+            process.terminate()
+            process.wait()
+            log.info("🔴 Streamlink process killed forcefully due to SystemExit")
     except Exception as e:
         log.info(e)
 
@@ -70,21 +82,19 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
             return 'reopen'
 
 
-def dlstream(channel, filename, workdir, token, ndate, dbid=None):
+def dlstream(channel, filename, workdir, token, ndate, dbid=None, udate=date.today()):
     log = Logger(channel)
     # os.chdir(folder)
     url = 'https://www.twitch.tv/' + channel
 
     # set file
     now = datetime.now()
-    filename = now.strftime("%H.%M")
+    #filename = now.strftime("%H.%M")
     tempfilename = "temp_1_" + filename + ".mp4"
-    tempfilename5 = 'temp_1.5_' + filename + '.mp4'
-    tempfilename2 = "temp_2_" + filename + ".mp4"
 
     streamcount = 0
     streamfiles = []
-    udate = date.today()
+
     while True:
         check = dek(workdir, filename+'_'+str(streamcount) +
                     '_stream.mp4', channel, log, token)
@@ -98,11 +108,27 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
         streamfilenames = streamfiles[0].split('/')[-1]
         print(f'renaming: {streamfilenames} ==> {tempfilename}')
         os.rename(streamfiles[0], workdir+tempfilename)
+    log.info("🔴 Recording stream is done")
+    
+    mvp = Process(target=managing_video, args=(channel, filename, workdir, log, ndate, streamfiles, dbid, udate,))
+    mvp.start()
+    
+def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=None, udate=date.today()):
+    tempfilename = "temp_1_" + filename + ".mp4"
+    tempfilename5 = 'temp_1.5_' + filename + '.mp4'
+    tempfilename2 = "temp_2_" + filename + ".mp4"
+      
     if len(streamfiles) > 1:
-        log.info('🪡 stitching streamfiles togehter')
+        log.info('🪡 stitching streamfiles together')
         videos = []
         for stream in streamfiles:
-            videos.append(VideoFileClip(stream))
+            # Repair the mp4 file before appending to the video list
+            repaired_stream = workdir + "repaired_" + os.path.basename(stream)
+            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-err_detect', 'ignore_err',
+                    '-i', stream, '-c', 'copy', repaired_stream])
+            videos.append(VideoFileClip(repaired_stream))
+            # Force remove the original stream file
+            os.remove(stream)
 
         odir = os.getcwd()
         os.chdir(workdir)
@@ -112,6 +138,10 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
                               audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None)
 
         os.chdir(odir)
+
+        # Clean up repaired files
+        for repaired_stream in videos:
+            os.remove(repaired_stream.filename)
 
         for vin in videos:
             vin.close()
@@ -166,7 +196,6 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
             time.sleep(2)
             os.remove(workdir+stream)
 
-    log.info("🔴 Recording stream is done")
     noti.message("download done, start fixing of: "+channel)
 
     log.info("🧰 managing")
@@ -189,9 +218,16 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None):
                 tbs.start()
             except Exception as e:
                 log.error(f"⚠️⚠️⚠️ Tbot process had an ERROR: {e}")
-        if 'ytupload' in channelconf['streamers'][channel]:
-            if channelconf['streamers'][channel]['ytupload'] == True:
+            if 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
                 p = Process(target=fixm, args=(workdir, tempfilename5,
+                            tempfilename2, filename, log, 1, channel, ndate, udate,))
+                p.start()
+            else:
+                p = Process(target=fixm, args=(workdir, tempfilename5,
+                            tempfilename2, filename, log, 0, channel, ndate, udate,))
+                p.start()
+        elif 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
+                p = Process(target=fixm, args=(workdir, tempfilename,
                             tempfilename2, filename, log, 1, channel, ndate, udate,))
                 p.start()
         else:
@@ -211,19 +247,20 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
     lt1 = tempfilename
     lt2 = tempfilename2
     fn = filename
-
+    compress_command = ['ffmpeg', '-loglevel', 'quiet', '-i', os.path.join(workdir, lt1), '-vf', 'format=yuv420p', '-c:v',
+                        options_codec, '-preset', 'medium', '-c:a', 'copy', os.path.join(workdir, fn + ".mp4")]
+    print(compress_command)
+    
     if choosen == 0:
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
-            shutil.rmtree(workdir)
+            shutil.rmtree(workdir, ignore_errors=True)
         else:
-            log.info("🧰 file fixed")
             """ if cs == True:
                 job(channel, ndate, lt1, fn)
              else:
             """
-            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-i', workdir + lt1, '-c:v',
-                            'hevc_nvenc', '-preset', 'medium', '-c:a', 'copy', workdir + fn + ".mp4"])
+            subprocess.call(compress_command)
             log.info("🧰 file compressed")
 
     elif choosen == 1:
@@ -273,8 +310,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
             else: """
             old_gb = get_file_size_in_gb(workdir + lt1)
             start = time.time()
-            subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-i', workdir + lt1, '-c:v',
-                            'hevc_nvenc', '-preset', 'medium', '-c:a', 'copy', workdir + fn + ".mp4"])
+            subprocess.call(compress_command)
             log.info(
                 f"🧰 file compressed in: {datetime.fromtimestamp(time.time()-start).strftime('%H:%M:%S')}, {old_gb} -> {get_file_size_in_gb(workdir+fn+'.mp4')}")
 
