@@ -83,89 +83,80 @@ class trimming:
     def trim_on_word(self):
         self.log.info(self.word)
         self.log.info("snipping")
-    # with open(os.path.join(self.workdir, 'output.txt'), 'r') as fr:
-        for line in self.results:
-            # line = str(line.rstrip())
-            line = line.replace("\"", ",")
-            line = line.replace("\'", "\"")
-            self.jsonwordlist.append(line)
+        merge_threshold = 1.0  # Segments closer than 1 second will be merged
 
-        count = 0
+        # Process JSON words
+        self.jsonwordlist = [line.replace("\"", ",").replace(
+            "\'", "\"") for line in self.results]
+
+        # First collect all valid segments
+        segments = []
         for line in self.jsonwordlist:
             try:
                 line = json.loads(line)
-                if len(line) == 0 or len(line) == 1:
-                    pass
-                elif line['word'] in self.word and line['conf'] >= 0.85:
-                    count = count + 1
+                if len(line) > 1 and line['word'] in self.word and line['conf'] >= 0.85:
+                    start = line['start'] - self.startpadding
+                    end = line['end'] + self.endpadding
+                    segments.append([start, end])
             except:
                 pass
 
-        if count == 0:
+        if not segments:
             self.log.warning('passing because no words to process')
             return
 
-        self.log.info(f'{count} {self.word}\'s in file')
-        self.log.info('appending to cutting list ...')
-        self.noti.message(f'there are {count} {self.word}, to be processed')
+        # Merge overlapping or close segments
+        self.log.info(f'{len(segments)} segments before merging')
+        segments.sort(key=lambda x: x[0])
+        merged_segments = []
+        current = segments[0]
 
-        if os.path.isdir(os.path.join(self.workdir, 'output')) == False:
+        for next_seg in segments[1:]:
+            if next_seg[0] - current[1] <= merge_threshold:
+                # Merge segments
+                current[1] = next_seg[1]
+            else:
+                merged_segments.append(current)
+                current = next_seg
+        merged_segments.append(current)
+
+        self.log.info(f'{len(merged_segments)} segments after merging')
+        self.noti.message(
+            f'there are {len(merged_segments)} segments to be processed')
+
+        # Create output directory if needed
+        if not os.path.isdir(os.path.join(self.workdir, 'output')):
             os.mkdir(os.path.join(self.workdir, 'output'))
+
+        # Process video segments
         with VideoFileClip(os.path.join(self.workdir, self.vfile)) as vvar:
-            for line in self.jsonwordlist:
-                x = None
+            for start, end in merged_segments:
                 try:
-                    line = json.loads(line)
-                    if len(line) == 0 or len(line) == 1:
-                        pass
-                    elif line['word'] in self.word and line['conf'] >= 0.8:
-                        fstart = line['start']
-                        fend = line['end']
-                        start = fstart - self.startpadding
-                        end = fend + self.endpadding
-                        # print('word:', line['word'], 'start:', self.timeconv(start), 'end:', self.timeconv(end))
-                        endtimecode = self.timeconv(end)
-                        # vodfile = line['word']+'-' + endtimecode.replace(":", ".")+'.mp4'
-                        # print(start, end)
-                        x = vvar.subclip(start, end)
-                except:
-                    # print('couldn\'t load line')
-                    pass
-                if x is not None:
-                    try:
-                        if x == None:
-                            pass
-                        else:
-                            self.editlist.append(x)
-                        # print('append to list\n')
-                    except Exception as e:
-                        self.log.error('there was n error with  appending the file:'+str(e)+'\n'+line)
+                    clip = vvar.subclip(start, end)
+                    self.editlist.append(clip)
+                except Exception as e:
+                    self.log.error(f'Error creating clip: {str(e)}')
 
             self.log.info("stitching")
-
-            if self.addition != None:
-                filename = f'{self.addition}stitched-video.mp4'
-            else:
-                filename = 'stitched-video.mp4'
+            filename = f'{self.addition}stitched-video.mp4' if self.addition else 'stitched-video.mp4'
 
             odir = os.getcwd()
             os.chdir(os.path.join(self.workdir, 'output/'))
 
             final_clip = concatenate_videoclips(self.editlist)
-            # final_clip.write_videofile(workdir+'output/'+'stitched-video-nonf.mp4')
-            final_clip.write_videofile(os.path.join(self.workdir, 'output/', filename), fps=30, verbose=False, remove_temp=True,
-                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+            final_clip.write_videofile(os.path.join(self.workdir, 'output/', filename),
+                                       fps=30, verbose=False, remove_temp=True,
+                                       audio_codec="aac", codec=options_codec,
+                                       bitrate='5M', preset='medium', threads=16,
+                                       logger=None,
                                        ffmpeg_params=["-vf", "format=yuv420p"])
 
             os.chdir(odir)
 
             self.log.info('closing all clips')
-            for x in self.editlist:
-                x.close()
-            vvar.close()
+            for clip in self.editlist:
+                clip.close()
             final_clip.close()
-        """ subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-err_detect', 'ignore_err', '-i', os.path.join(self.workdir,'output/','stitched-video-nonf.mp4'), '-c', 'copy', os.path.join(self.workdir,'output/','stitched-video.mp4'), '-y'])
-        os.remove(os.path.join(self.workdir,'output/','stitched-video-nonf.mp4')) """
 
     def twitter_upload(self):
         sleep(20)
@@ -185,7 +176,7 @@ class trimming:
             while n != timessecons:
                 start = 120 * n
                 end = 120 * n + 120
-                #print('n', start, end)
+                # print('n', start, end)
 
                 odir = os.getcwd()
                 os.chdir(os.path.join(self.workdir, 'output/'))
@@ -193,8 +184,8 @@ class trimming:
                 clip = VideoFileClip(os.path.join(
                     self.workdir, 'output/', 'stitched-video.mp4')).subclip(start, end)
                 clip.write_videofile(os.path.join(self.workdir, 'output/'+str(n)+'-part.mp4'), fps=30, verbose=False, remove_temp=True,
-                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
-                                       ffmpeg_params=["-vf", "format=yuv420p"])
+                                     audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+                                     ffmpeg_params=["-vf", "format=yuv420p"])
                 clip.close()
 
                 os.chdir(odir)
@@ -205,18 +196,18 @@ class trimming:
                 clip = VideoFileClip(os.path.join(
                     self.workdir, 'output/', 'stitched-video.mp4'))
                 duration = clip.duration
-                #print(timessecons, duration)
+                # print(timessecons, duration)
                 start = 120 * timessecons
                 end = start + rest
-                #print('rest', start, end)
+                # print('rest', start, end)
 
                 odir = os.getcwd()
                 os.chdir(os.path.join(self.workdir, 'output/'))
 
                 clip = clip.subclip(start, end)
                 clip.write_videofile(os.path.join(self.workdir, 'output/'+str(rest)+'-part.mp4'), fps=30, verbose=False, remove_temp=True,
-                                       audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
-                                       ffmpeg_params=["-vf", "format=yuv420p"])
+                                     audio_codec="aac", codec=options_codec, bitrate='5M', preset='medium', threads=16, logger=None,
+                                     ffmpeg_params=["-vf", "format=yuv420p"])
                 clip.close()
 
                 os.chdir(odir)
@@ -224,9 +215,9 @@ class trimming:
                 self.uploadlist.append(str(rest)+'-part.mp4')
 
         sleep(10)
-        
+
         if len(self.uploadlist) != 0:
-            #self.log.info(len(self.uploadlist))
+            # self.log.info(len(self.uploadlist))
             self.log.info(f'{self.uploadlist} videos to upload')
             self.log.info('uploading ...')
             for c, ugoal in enumerate(self.uploadlist, start=1):
@@ -269,19 +260,19 @@ class init:
     def __init__(self, path, word, sp=5, ep=3, channel='', test=False, dbid=None, addittion=None):
         logbook.StreamHandler(sys.stdout).push_application()
         self.log = logbook.Logger(channel)
-        
+
         patharray = path.split('/')
         self.workdir = "/".join(patharray[:-1])
         self.log.info(f'working dir set to: {self.workdir}')
         self.vfile = patharray[-1:][0]
         self.log.info(f'filename: {self.vfile}')
-        
+
         self.word = word
         self.channel = channel
         self.dbid = dbid
         self.addittion = addittion
         match = re.search(r'\d{4}-\d{2}-\d{2}', path)
-        
+
         if match:
             self.date = match.group()
         else:
@@ -292,7 +283,8 @@ class init:
                 self.sp = channelconf['streamers'][channel]['tbot']['start']
                 self.ep = channelconf['streamers'][channel]['tbot']['end']
         except:
-            self.log.warning('start/end puffer not defined setting standart values')
+            self.log.warning(
+                'start/end puffer not defined setting standart values')
             self.sp = sp
             self.ep = ep
         self.test = test
@@ -301,13 +293,13 @@ class init:
     def start(self):
         """cv = combinevids(self.workdir)
         """
-        #init Tikitok uploader
+        # init Tikitok uploader
         uploader = TiktokUploader(
             client_key=tiktok_client_key,
             client_secret=tiktok_client_secret,
             redirect_uri=tiktok_callback_uri,
-            )
-        
+        )
+
         # start word recognition or load tempfile
         if self.test == 0 or 3 or 4 or 5 or 6:
             wp = wordprep(self.workdir, self.vfile)
@@ -321,7 +313,8 @@ class init:
             else:
                 start = time.time()
                 aresults = wp.analyse()
-                self.log.info(f'time elapsed: {datetime.fromtimestamp(time.time()-start).strftime("%H:%M:%S")}')
+                self.log.info(
+                    f'time elapsed: {datetime.fromtimestamp(time.time()-start).strftime("%H:%M:%S")}')
 
                 sleep(10)
         # database upload words
@@ -364,14 +357,15 @@ class init:
                                 self.workdir, dbid=self.dbid)
             st.tweetsentiment()
 
-        if self.test == 0 or 6:
+        if self.test == 0 or self.test == 6:
             self.log.info('upload to twitter')
             tr.twitter_upload()
             self.log.info('upload to twitter finished')
-            
+
         if channelconf['streamers'][self.channel]['tbot']['tiktokupload'] and self.date != None and channelconf['streamers'][self.channel]['tbot']['tiktokupload'] == True:
-            uploader.upload_to_tiktok(video_path=os.path.join(self.workdir, 'output/', 'stitched-video.mp4'))
-        
+            uploader.upload_to_tiktok(video_path=os.path.join(
+                self.workdir, 'output/', 'stitched-video.mp4'))
+
         if self.test == 0:
             try:
                 # os.remove(os.path.join(self.workdir, 'output.txt'))
@@ -379,5 +373,5 @@ class init:
                 pass
             except Exception as e:
                 self.log.error('faild to delete temp files', e)
-                
+
         return
