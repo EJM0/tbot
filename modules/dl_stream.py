@@ -54,8 +54,12 @@ def dek(workdir, tempfilename, channel, log, token, pausetime=720):
 
     try:
         print(channel)
-        process = subprocess.Popen(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
-                        '-l', 'none', '--hls-duration', '24:00:00', '--twitch-disable-ads'], stdout=subprocess.DEVNULL)
+        try:
+            process = subprocess.Popen(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
+                                        '-l', 'none', '--hls-duration', '24:00:00', '--twitch-disable-ads', '--twitch-proxy-playlist=https://lb-eu3.cdn-perfprod.com,https://eu.luminous.dev,https://lb-eu.cdn-perfprod.com,https://eu.luminous.dev,https://eu2.luminous.dev,https://as.luminous.dev'], stdout=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            process = subprocess.Popen(["streamlink", "twitch.tv/" + channel, 'best', "-o", workdir+tempfilename,
+                                        '-l', 'none', '--hls-duration', '24:00:00'], stdout=subprocess.DEVNULL)
         try:
             process.wait()
         except KeyboardInterrupt:
@@ -89,7 +93,7 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None, udate=date.tod
 
     # set file
     now = datetime.now()
-    #filename = now.strftime("%H.%M")
+    # filename = now.strftime("%H.%M")
     tempfilename = "temp_1_" + filename + ".mp4"
 
     streamcount = 0
@@ -109,15 +113,17 @@ def dlstream(channel, filename, workdir, token, ndate, dbid=None, udate=date.tod
         print(f'renaming: {streamfilenames} ==> {tempfilename}')
         os.rename(streamfiles[0], workdir+tempfilename)
     log.info("🔴 Recording stream is done")
-    
-    mvp = Process(target=managing_video, args=(channel, filename, workdir, log, ndate, streamfiles, dbid, udate,))
+
+    mvp = Process(target=managing_video, args=(channel, filename,
+                  workdir, log, ndate, streamfiles, dbid, udate,))
     mvp.start()
-    
+
+
 def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=None, udate=date.today()):
     tempfilename = "temp_1_" + filename + ".mp4"
     tempfilename5 = 'temp_1.5_' + filename + '.mp4'
     tempfilename2 = "temp_2_" + filename + ".mp4"
-      
+
     if len(streamfiles) > 1:
         log.info('🪡 stitching streamfiles together')
         videos = []
@@ -125,7 +131,7 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
             # Repair the mp4 file before appending to the video list
             repaired_stream = workdir + "repaired_" + os.path.basename(stream)
             subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-err_detect', 'ignore_err',
-                    '-i', stream, '-c', 'copy', repaired_stream])
+                             '-i', stream, '-c', 'copy', repaired_stream])
             videos.append(VideoFileClip(repaired_stream))
             # Force remove the original stream file
             os.remove(stream)
@@ -141,13 +147,11 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
 
         # Clean up repaired files
         for repaired_stream in videos:
-            os.remove(repaired_stream.filename)
-
-        for vin in videos:
-            vin.close()
-        for streamfile in streamfiles:
-            time.sleep(2)
-            os.remove(streamfile)
+            repaired_stream.close()
+            if os.path.exists(repaired_stream.filename):
+                os.remove(repaired_stream.filename)
+            else:
+                log.warning(f"File not found: {repaired_stream.filename}")
 
     print(workdir+'*.mp4')
     prefiles = glob.glob(workdir+'/*.mp4')
@@ -227,9 +231,9 @@ def managing_video(channel, filename, workdir, log, ndate, streamfiles, dbid=Non
                             tempfilename2, filename, log, 0, channel, ndate, udate,))
                 p.start()
         elif 'ytupload' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['ytupload'] == True:
-                p = Process(target=fixm, args=(workdir, tempfilename,
-                            tempfilename2, filename, log, 1, channel, ndate, udate,))
-                p.start()
+            p = Process(target=fixm, args=(workdir, tempfilename,
+                        tempfilename2, filename, log, 1, channel, ndate, udate,))
+            p.start()
         else:
             p = Process(target=fixm, args=(workdir, tempfilename,
                         tempfilename2, filename, log, 0, channel, ndate, udate,))
@@ -250,7 +254,7 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
     compress_command = ['ffmpeg', '-loglevel', 'quiet', '-i', os.path.join(workdir, lt1), '-vf', 'format=yuv420p', '-c:v',
                         options_codec, '-preset', 'medium', '-c:a', 'copy', os.path.join(workdir, fn + ".mp4")]
     print(compress_command)
-    
+
     if choosen == 0:
         if 'NOKEEP' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['NOKEEP'] == True:
             log.info('NOKEEP on deleting all files!')
@@ -265,19 +269,19 @@ def fixm(workdir, tempfilename, tempfilename2, filename, log, choosen, channel, 
 
     elif choosen == 1:
         if 'fckdmca' in channelconf['streamers'][channel] and channelconf['streamers'][channel]['fckdmca']:
-                killmusic = dmcaf(workdir, lt1)
-                log.info('🎛️ sepperating vocal stem')
-                killmusic.sepperate()
-                log.info('🎛️ remuxing new audio with video')
-                finalvideo = killmusic.patch()
-                log.info('🎛️ done!')
-                fworkdir = workdir + 'output/'
-                
+            killmusic = dmcaf(workdir, lt1)
+            log.info('🎛️ sepperating vocal stem')
+            killmusic.sepperate()
+            log.info('🎛️ remuxing new audio with video')
+            finalvideo = killmusic.patch()
+            log.info('🎛️ done!')
+            fworkdir = workdir + 'output/'
+
         else:
             fworkdir = workdir
             finalvideo = lt1
         vfile = VideoFileClip(os.path.join(
-                    fworkdir, finalvideo))
+            fworkdir, finalvideo))
         duration = vfile.duration
         vfile.close()
         if duration >= 43200:
