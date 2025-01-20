@@ -1,4 +1,4 @@
-FROM python:3.11.4-slim
+FROM python:3.14.0a1-slim
 
 RUN pip install --upgrade pip==23.3.2
 
